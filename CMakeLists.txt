@@ -9,8 +9,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set (VERBOSE 1)
 
-#Add the executable
-add_executable(dmxSerial main.cpp)
+# Add the executable
+add_executable(dmxSerial src/main.cpp)
 
 # Add the libftdi subdirectory
 # set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/libs/libftdi/cmake)
@@ -27,14 +27,8 @@ message (">>> dir :"${LIBFTDI_LIBRARY_DIRS})
 
 include_directories(libs/libftdi/install/include/libftdi1/)
 
-#Link libraries
+# Link libraries
 if(APPLE)
-#Include directories
-# include_directories(
-#     ${CMAKE_SOURCE_DIR}/libs/libftdi/install/include/libftdi1/
-#     /opt/homebrew/include/libusb-1.0/
-# )
-
     target_link_libraries(dmxSerial
         # ${CMAKE_SOURCE_DIR}/libs/libftdi/install/lib/libftdi1.a
         # /opt/homebrew/lib/libusb-1.0.a
@@ -43,8 +37,5 @@ if(APPLE)
         "-framework IOKit"
     )
 elseif(UNIX)
-    target_link_libraries(dmxSerial
-        /path/to/libftdi1.a  # Update this path for Linux
-        /path/to/libusb-1.0.a # Update this path for Linux
-    )
+    
 endif()
