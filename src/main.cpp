@@ -1,43 +1,70 @@
 #include "Artnet.hpp"
 #include "DMXInterface.hpp"
+#include "udpServer.hpp"
+#include <mutex>
 
-void ramp(uint8_t &v, uint8_t inc = 1) { v = uint8_t(v + inc); }
-struct COBPar {
-  COBPar(uint8_t *uni, int addr) : uni(uni), addr(addr) {}
+struct MsgRunner {
 
-  uint8_t &a_dim() { return uni[addr]; };
-  uint8_t &a_r() { return uni[addr + 1]; };
-  uint8_t &a_g() { return uni[addr + 2]; };
-  uint8_t &a_b() { return uni[addr + 3]; };
-  void setDim(uint8_t d) { a_dim() = d; }
-  void setRGB(uint8_t r, uint8_t g, uint8_t b) {
-    a_r() = r;
-    a_g() = g;
-    a_b() = b;
+  MsgRunner(uint8_t *dmxData) : dmxData(dmxData) {}
+  void addMsg(DMXMsg &&m) {
+    std::scoped_lock lock(mutex);
+    m.startTime = TimeInterval::getNow();
+    msgs.push_back(m);
   }
 
-  uint8_t *uni;
-  int addr;
+  void doStep() {
+    std::scoped_lock lock(mutex);
+    auto now = TimeInterval::getNow();
+    auto dt = now - lastNow;
+    lastNow = now;
+
+    for (auto &m : msgs) {
+      float pct = 1;
+      if (m.timeToDest > 0)
+        pct = std::min(1.f, float(now - m.startTime) / m.timeToDest);
+      m.applyToDMXBuf(pct, dmxData);
+
+      if (pct == 1)
+        m.timeToDest = 0;
+    }
+
+    for (int i = msgs.size() - 1; i >= 0; i--) {
+      if (msgs[i].timeToDest == 0)
+        msgs.erase(msgs.begin() + i);
+    }
+  }
+
+  unsigned long long lastNow = 0;
+  std::vector<DMXMsg> msgs;
+  uint8_t *dmxData;
+  std::mutex mutex;
 };
 
-// Example usage
-int main() {
+int main(int argc, char **argv) {
 
-  DMXInterface dmx(14);
+  DMXInterface dmx(7 * 4);
+  MsgRunner msgRunner(dmx.frame);
 
-  // startThread();
-  startArtnetThread([&dmx](const uint8_t *data, const uint16_t size) {
-    if (size != 512) {
-      std::cerr << "artnet size not defined" << std::endl;
-      return;
-    }
-    std::cerr << "new frame from artnet : " << std::to_string(size)
-              << std::endl;
-    memcpy(dmx.frame + 1, data, size);
-  });
-  COBPar par(dmx.frame, 1);
-  par.setDim(255);
-  par.setRGB(255, 0, 0);
+  // conf
+  bool enableArtnet = false;
+  for (int i = 1; i < argc; i++) {
+    if (std::string(argv[i]) == std::string("--artnet"))
+      enableArtnet = true;
+  }
+
+  if (enableArtnet) {
+    startArtnetThread([&dmx](const uint8_t *data, const uint16_t size) {
+      if (size != 512) {
+        std::cerr << "artnet size not defined" << std::endl;
+        return;
+      }
+      // std::cout << "new frame from artnet : " << std::to_string(size)
+      //           << std::endl;
+      memcpy(dmx.frame + 1, data, size);
+    });
+  }
+
+  startUDPThread([&msgRunner](DMXMsg &&m) { msgRunner.addMsg(std::move(m)); });
   // dmx.frame[1] = 255; // Channel 2
   // dmx.frame[2] = 255; // Channel 2
   // dmxFrame[3] = 255;           // Channel 1
@@ -46,9 +73,8 @@ int main() {
     if (!dmx.update())
       usleep(10 * 1000);
     else {
-      // ramp(par.a_r());
-      // ramp(par.a_dim(), -2);
     }
+    msgRunner.doStep();
   }
   dmx.close();
 

@@ -4,8 +4,8 @@
 
 std::function<void(const uint8_t *data, const uint16_t size)> artnetCallback;
 void callback(const uint8_t *data, const uint16_t size) {
-  //   std::cout << " got art net on u1 + size = " << std::to_string(size) <<
-  //   std::endl;
+  // std::cout << " got art net on u1 + size = " << std::to_string(size)
+  //           << std::endl;
   artnetCallback(data, size);
 }
 

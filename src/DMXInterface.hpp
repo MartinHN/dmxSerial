@@ -4,7 +4,7 @@
 struct DMXInterface {
   SimpleDMXSender dmxSender = {"ABADF5SD", 0x0403, 0x6001}; // ftdi vid,pid
   uint8_t frame[512 + 1] = {0};
-  TimeInterval reopenInterval = {500};
+  TimeInterval reopenInterval = {2000};
   DMXInterface(int _frameSize) : frameSize(_frameSize) {}
   bool update() {
     if (!dmxSender.isConnected()) {
