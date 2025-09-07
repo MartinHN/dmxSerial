@@ -1,3 +1,4 @@
+#include "Artnet.hpp"
 #include "DMXInterface.hpp"
 
 void ramp(uint8_t &v, uint8_t inc = 1) { v = uint8_t(v + inc); }
@@ -24,6 +25,16 @@ int main() {
 
   DMXInterface dmx(14);
 
+  // startThread();
+  startArtnetThread([&dmx](const uint8_t *data, const uint16_t size) {
+    if (size != 512) {
+      std::cerr << "artnet size not defined" << std::endl;
+      return;
+    }
+    std::cerr << "new frame from artnet : " << std::to_string(size)
+              << std::endl;
+    memcpy(dmx.frame + 1, data, size);
+  });
   COBPar par(dmx.frame, 1);
   par.setDim(255);
   par.setRGB(255, 0, 0);
@@ -36,7 +47,7 @@ int main() {
       usleep(10 * 1000);
     else {
       // ramp(par.a_r());
-      ramp(par.a_dim(), -2);
+      // ramp(par.a_dim(), -2);
     }
   }
   dmx.close();

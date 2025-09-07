@@ -26,6 +26,8 @@ message (">>> dir :"${LIBFTDI_LIBRARY_DIRS})
 
 
 include_directories(libs/libftdi/install/include/libftdi1/)
+#add artnet
+include_directories (${CMAKE_SOURCE_DIR}/libs)
 
 # Link libraries
 if(APPLE)
