@@ -49,11 +49,17 @@ public:
       return false;
     }
 
-    if (ftdi_usb_purge_buffers(&m_handle) < 0) {
+    // if (ftdi_usb_purge_buffers(&m_handle) < 0) {
+    //   std::cerr << "Failed to clearRts " << ftdi_get_error_string(&m_handle)
+    //             << std::endl;
+    //   return false;
+    // }
+    if (ftdi_tcioflush(&m_handle) < 0) {
       std::cerr << "Failed to clearRts " << ftdi_get_error_string(&m_handle)
                 << std::endl;
       return false;
     }
+
     std::cout << "Opened ftdi ! " << std::endl;
     isOpen = true;
     return true;

@@ -4,7 +4,7 @@ cmake_minimum_required(VERSION 3.10)
 project(dmxSerial)
 
 #Specify the C++ standard
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 set (VERBOSE 1)
@@ -26,6 +26,10 @@ message (">>> dir :"${LIBFTDI_LIBRARY_DIRS})
 
 
 include_directories(libs/libftdi/install/include/libftdi1/)
+
+# add websocket
+#include_directories (${CMAKE_SOURCE_DIR}/libs/oscpp/include)
+
 #add artnet
 include_directories (${CMAKE_SOURCE_DIR}/libs)
 

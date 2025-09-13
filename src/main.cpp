@@ -1,56 +1,37 @@
 #include "Artnet.hpp"
 #include "DMXInterface.hpp"
+#include "MsgRunner.hpp"
 #include "udpServer.hpp"
-#include <mutex>
 
-struct MsgRunner {
-
-  MsgRunner(uint8_t *dmxData) : dmxData(dmxData) {}
-  void addMsg(DMXMsg &&m) {
-    std::scoped_lock lock(mutex);
-    m.startTime = TimeInterval::getNow();
-    msgs.push_back(m);
-  }
-
-  void doStep() {
-    std::scoped_lock lock(mutex);
-    auto now = TimeInterval::getNow();
-    auto dt = now - lastNow;
-    lastNow = now;
-
-    for (auto &m : msgs) {
-      float pct = 1;
-      if (m.timeToDest > 0)
-        pct = std::min(1.f, float(now - m.startTime) / m.timeToDest);
-      m.applyToDMXBuf(pct, dmxData);
-
-      if (pct == 1)
-        m.timeToDest = 0;
-    }
-
-    for (int i = msgs.size() - 1; i >= 0; i--) {
-      if (msgs[i].timeToDest == 0)
-        msgs.erase(msgs.begin() + i);
-    }
-  }
-
-  unsigned long long lastNow = 0;
-  std::vector<DMXMsg> msgs;
-  uint8_t *dmxData;
-  std::mutex mutex;
-};
+void usage() {
+  std::cout << "--artnet\n\t enables artnet\n"
+            << "--channels\n\t specify last dmx address\n"
+            << std::endl;
+}
 
 int main(int argc, char **argv) {
 
-  DMXInterface dmx(7 * 4);
-  MsgRunner msgRunner(dmx.frame);
-
   // conf
   bool enableArtnet = false;
+  int maxNumCh = 512;
   for (int i = 1; i < argc; i++) {
-    if (std::string(argv[i]) == std::string("--artnet"))
+    if (std::string(argv[i]) == std::string("--help")) {
+      usage();
+      exit(0);
+    } else if (std::string(argv[i]) == std::string("--artnet"))
       enableArtnet = true;
+    else if (std::string(argv[i]) == std::string("--channels")) {
+      i++;
+      if (i >= argc) {
+        usage();
+        exit(1);
+      }
+      maxNumCh = std::stoi(std::string(argv[i]));
+    }
   }
+
+  DMXInterface dmx(maxNumCh);
+  MsgRunner msgRunner(dmx.frame + 1);
 
   if (enableArtnet) {
     startArtnetThread([&dmx](const uint8_t *data, const uint16_t size) {

@@ -55,6 +55,7 @@
         "random": "cpp",
         "regex": "cpp",
         "set": "cpp",
-        "unordered_map": "cpp"
+        "unordered_map": "cpp",
+        "__config_site": "cpp"
     }
 }
